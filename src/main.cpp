@@ -172,6 +172,7 @@ void initialize_data()
 	curve_visual = curve_drawable(curve_primitive_circle());
 
 	ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.0f,-1.0f},{-1.0f,-1.0f,1.0f},{1.0f,-1.0f,-1.0f},{1.0f,-1.0f,1.0f}));
+	ground.texture = opengl_texture_to_gpu(image_load_png("assets/ground.png"));
 
 
 
