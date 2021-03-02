@@ -16,7 +16,7 @@ include_directories("src")
 
 # Include files from the library (vcl as well as external dependencies)
 #  > The relative path to the VCL library may need to be adapted
-include("../../../library/CMakeLists.txt")
+include("library/CMakeLists.txt")
 
 add_definitions(-DSOLUTION)
 
