@@ -169,6 +169,8 @@ void simulate(float dt, buffer<particle_element>& particles, sph_parameters_stru
         if( p.y<-1 ) {p.y = -1+epsilon*rand_interval();  v.y *= -0.5f;}
         if( p.x<-1 ) {p.x = -1+epsilon*rand_interval();  v.x *= -0.5f;}
         if( p.x>1 )  {p.x =  1-epsilon*rand_interval();  v.x *= -0.5f;}
+        if( p.z<-1 ) {p.z = -1+epsilon*rand_interval();  v.z *= -0.5f;}
+        if( p.z>1 )  {p.z =  1-epsilon*rand_interval();  v.z *= -0.5f;}
     }
 
 }

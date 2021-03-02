@@ -11,6 +11,7 @@ struct gui_parameters {
 	bool display_color     = true;
 	bool display_particles = true;
 	bool display_radius    = false;
+	bool display_frame		= true;
 };
 
 struct user_interaction_parameters {
@@ -38,7 +39,7 @@ void window_size_callback(GLFWwindow* window, int width, int height);
 void initialize_data();
 void display_scene();
 void display_interface();
-void update_field_color(grid_2D<vec3>& field, vcl::buffer<particle_element> const& particles);
+void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles);
 
 
 timer_basic timer;
@@ -49,8 +50,10 @@ buffer<particle_element> particles;      // Storage of the particles
 mesh_drawable sphere_particle; // Sphere used to display a particle
 curve_drawable curve_visual;   // Circle used to display the radius h of influence
 
-grid_2D<vec3> field;      // grid used to represent the volume of the fluid under the particles
+grid_3D<vec3> field;      // grid used to represent the volume of the fluid under the particles
 mesh_drawable field_quad; // quad used to display this field color
+
+mesh_drawable ground;
 
 
 
@@ -124,16 +127,19 @@ void initialize_sph()
 	float const h = sph_parameters.h;
 
 
-	// Fill a square with particles
+	// Fill a cube with particles
 	particles.clear();
     float const epsilon = 1e-3f;
     for(float x=h; x<1.0f-h; x=x+c*h)
     {
         for(float y=-1.0f+h; y<1.0f-h; y=y+c*h)
         {
-            particle_element particle;
-            particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),0}; // a zero value in z position will lead to a 2D simulation
-            particles.push_back(particle);
+			
+			particle_element particle;
+			particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
+			particles.push_back(particle);			
+
+			
         }
     }
 
@@ -151,16 +157,24 @@ void initialize_data()
 
 	scene.camera.look_at({0,0,1.0f}, {0,0,0}, {0,1,0});
 
-	field.resize(30,30);
+	field.resize(30,30,30);
 	field_quad = mesh_drawable( mesh_primitive_quadrangle({-1,-1,0},{1,-1,0},{1,1,0},{-1,1,0}) );
 	field_quad.shading.phong = {1,0,0};
-	field_quad.texture = opengl_texture_to_gpu(field);
+	//field_quad.texture = opengl_texture_to_gpu(field);
+
+	user.gui.display_frame = false;
+
 
 	initialize_sph();
 	sphere_particle = mesh_drawable(mesh_primitive_sphere());
 	sphere_particle.transform.scale = 0.01f;
 	curve_visual.color = {1,0,0};
 	curve_visual = curve_drawable(curve_primitive_circle());
+
+	ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.0f,-1.0f},{-1.0f,-1.0f,1.0f},{1.0f,-1.0f,-1.0f},{1.0f,-1.0f,1.0f}));
+
+
+
 }
 
 
@@ -183,10 +197,12 @@ void display_scene()
 	}
 
 	if(user.gui.display_color){
-		update_field_color(field, particles);
-		opengl_update_texture_gpu(field_quad.texture, field);
-		draw(field_quad, scene);
+		//update_field_color(field, particles);
+		//opengl_update_texture_gpu(field_quad.texture, field);
+		//draw(field_quad, scene);
 	}
+
+	draw(ground, scene);
 
 }
 void display_interface()
@@ -200,6 +216,8 @@ void display_interface()
 	ImGui::Checkbox("Color", &user.gui.display_color);
 	ImGui::Checkbox("Particles", &user.gui.display_particles);
 	ImGui::Checkbox("Radius", &user.gui.display_radius);
+	ImGui::Checkbox("Frame", &user.gui.display_frame);
+
 
 }
 
@@ -208,8 +226,7 @@ void window_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 	float const aspect = width / static_cast<float>(height);
-	float const L = 1.1f;
-	scene.projection = projection_orthographic(-aspect*L,aspect*L,-L,L,-10.0f,10.0f);
+	scene.projection = projection_perspective(50.0f*pi/180.0f, aspect, 2.0f, 200.0f);
 }
 
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
@@ -221,12 +238,12 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	vec2 const  p1 = glfw_get_mouse_cursor(window, xpos, ypos);
 	vec2 const& p0 = user.mouse_prev;
-
 	glfw_state state = glfw_current_state(window);
 
 	auto& camera = scene.camera;
-
 	if(!user.cursor_on_gui){
+		if(state.mouse_click_left && !state.key_ctrl)
+			scene.camera.manipulator_rotate_trackball(p0, p1);
 		if(state.mouse_click_left && state.key_ctrl)
 			camera.manipulator_translate_in_plane(p1-p0);
 		if(state.mouse_click_right)
@@ -243,22 +260,23 @@ void opengl_uniform(GLuint shader, scene_environment const& current_scene)
 	opengl_uniform(shader, "light", scene.light, false);
 }
 
-void update_field_color(grid_2D<vec3>& field, vcl::buffer<particle_element> const& particles)
+void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles)
 {
 	field.fill({1,1,1});
 	float const d = 0.1f;
 	int const Nf = int(field.dimension.x);
 	for (int kx = 0; kx < Nf; ++kx) {
 		for (int ky = 0; ky < Nf; ++ky) {
-
-			float f = 0.0f;
-			vec3 const p0 = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 0.0f};
-			for (size_t k = 0; k < particles.size(); ++k) {
-				vec3 const& pi = particles[k].p;
-				float const r = norm(pi-p0)/d;
-				f += 0.25f*std::exp(-r*r);
+			for (int kz = 0; kz < Nf; ++kz) {
+				float f = 0.0f;
+				vec3 const p0 = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 2.0f*(kz/(Nf-1.0f)-0.5f)};
+				for (size_t k = 0; k < particles.size(); ++k) {
+					vec3 const& pi = particles[k].p;
+					float const r = norm(pi-p0)/d;
+					f += 0.25f*std::exp(-r*r);
+				}
+				field(kx,Nf-1-ky,kz) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
 			}
-			field(kx,Nf-1-ky) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
 		}
 	}
 
