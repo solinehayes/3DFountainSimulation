@@ -1,3 +1,3 @@
 # 3DFountainSimulation
 
-[Gif]("./Cube.gif")
+![Gif]("./Cube.gif")
