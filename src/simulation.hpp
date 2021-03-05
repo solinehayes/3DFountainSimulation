@@ -14,6 +14,7 @@ struct particle_element
     float rho;      // density at this particle position
     float pressure; // pressure at this particle position
 
+
     particle_element() : p{0,0,0},v{0,0,0},f{0,0,0},rho(0),pressure(0) {}
 };
 
@@ -30,7 +31,7 @@ struct sph_parameters_structure
     float m = rho0*h*h;
 
     // viscosity parameter
-    float nu = 0.02f;   
+    float nu = 0.02f;
      
     // Stiffness converting density to pressure
     float stiffness = 8.0f;
