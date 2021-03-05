@@ -158,7 +158,7 @@ void update_particles(){
             particles[i].lifetime = 0;
         }
     }
-    // Add particles or reclycle one
+    // Add or reclycle particle
     if (particle_to_recycle != 0){
         particles[particle_to_recycle].p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
         particles[particle_to_recycle].v = {0.0f,5.0f,0.0f};
@@ -184,9 +184,9 @@ void initialize_data()
 	scene.camera.look_at({0,0,1.0f}, {0,0,0}, {0,1,0});
 
 	field.resize(30,30,30);
-	field_quad = mesh_drawable( mesh_primitive_quadrangle({-1,-1,0},{1,-1,0},{1,1,0},{-1,1,0}) );
-	field_quad.shading.phong = {1,0,0};
-	//field_quad.texture = opengl_texture_to_gpu(field);
+    field_quad = mesh_drawable( mesh_primitive_quadrangle({-0.1f,-0.1f,0},{0.1f,-0.1f,0},{0.1f,0.1f,0},{-0.1f,0.1f,0}) );
+    field_quad.shading.phong = {1.0f,0,0};
+    field_quad.texture = opengl_texture_to_gpu(image_load_png("assets/field.png"));
 
 	user.gui.display_frame = false;
 
@@ -197,8 +197,8 @@ void initialize_data()
 	curve_visual.color = {1,0,0};
 	curve_visual = curve_drawable(curve_primitive_circle());
 
-	ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.0f,-1.0f},{-1.0f,-1.0f,1.0f},{1.0f,-1.0f,-1.0f},{1.0f,-1.0f,1.0f}));
-	ground.texture = opengl_texture_to_gpu(image_load_png("assets/ground.png"));
+    ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.0f,-1.0f},{-1.0f,-1.0f,1.0f},{1.0f,-1.0f,-1.0f},{1.0f,-1.0f,1.0f}));
+    ground.texture = opengl_texture_to_gpu(image_load_png("assets/ground.png"));
 
 
 
@@ -224,12 +224,23 @@ void display_scene()
 	}
 
 	if(user.gui.display_color){
-		//update_field_color(field, particles);
+        //update_field_color(field, particles);
 		//opengl_update_texture_gpu(field_quad.texture, field);
 		//draw(field_quad, scene);
+        glEnable(GL_BLEND);
+        glDepthMask(false);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        for(size_t k = 0; k < particles.size(); ++k)
+        {
+            field_quad.transform.translate = particles[k].p;
+            field_quad.transform.rotate = scene.camera.orientation();
+            field_quad.shading.alpha = 0.1f;
+            draw(field_quad, scene);
+        }
 	}
 
-	draw(ground, scene);
+    //draw(ground, scene);
 
 }
 void display_interface()
@@ -289,7 +300,7 @@ void opengl_uniform(GLuint shader, scene_environment const& current_scene)
 
 void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles)
 {
-	field.fill({1,1,1});
+    field.fill({1,1,1});
 	float const d = 0.1f;
 	int const Nf = int(field.dimension.x);
 	for (int kx = 0; kx < Nf; ++kx) {
@@ -302,7 +313,7 @@ void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> cons
 					float const r = norm(pi-p0)/d;
 					f += 0.25f*std::exp(-r*r);
 				}
-				field(kx,Nf-1-ky,kz) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
+                //field(kx,Nf-1-ky,kz) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
 			}
 		}
 	}
