@@ -9,7 +9,7 @@ using namespace vcl;
 
 struct gui_parameters {
 	bool display_color     = true;
-	bool display_particles = true;
+    bool display_particles = true;
 	bool display_radius    = false;
 	bool display_frame		= true;
 };
@@ -130,30 +130,30 @@ void initialize_sph()
 
 
 	// Fill a cube with particles
-	particles.clear();
-    float const epsilon = 1e-3f;
+    particles.clear();
+    /*float const epsilon = 1e-3f;
     for(float x=h; x<1.0f-h; x=x+c*h)
     {
         for(float y=-1.0f+h; y<1.0f-h; y=y+c*h)
         {
 			
 			particle_element particle;
-            //particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
+            particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
             particle.p = {h/8*rand_interval(),h/8*rand_interval(),-1+h/8*rand_interval()}; // Same initial position
             particle.v = {0.0f,5.0f,0.0f}; // Initial velocity
-            //particles.push_back(particle);
+            particles.push_back(particle);
         }
-    }
+    }*/
 
 }
 
 void update_particles(){
     float const h = sph_parameters.h;
     int particle_to_recycle = 0;
-    // Update lifetime  and recycle old particles to avoid slow simulation
+    // Update lifetime
     for(size_t i=0; i<particles.size(); ++i){
         particles[i].lifetime += 1;
-        if (particles[i].lifetime>700){
+        if (particles[i].lifetime>500){
             particle_to_recycle = i;
             particles[i].lifetime = 0;
         }
@@ -183,8 +183,8 @@ void initialize_data()
 
 	scene.camera.look_at({0,0,1.0f}, {0,0,0}, {0,1,0});
 
-	field.resize(30,30,30);
-    field_quad = mesh_drawable( mesh_primitive_quadrangle({-0.1f,-0.1f,0},{0.1f,-0.1f,0},{0.1f,0.1f,0},{-0.1f,0.1f,0}) );
+    field.resize(10,10,10);
+    field_quad = mesh_drawable( mesh_primitive_quadrangle({-0.22f,-0.22f,0},{0.22f,-0.22f,0},{0.22f,0.22f,0},{-0.22f,0.22f,0}) );
     field_quad.shading.phong = {1.0f,0,0};
     field_quad.texture = opengl_texture_to_gpu(image_load_png("assets/field.png"));
 
@@ -224,20 +224,21 @@ void display_scene()
 	}
 
 	if(user.gui.display_color){
-        //update_field_color(field, particles);
-		//opengl_update_texture_gpu(field_quad.texture, field);
-		//draw(field_quad, scene);
         glEnable(GL_BLEND);
         glDepthMask(false);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        for(size_t k = 0; k < particles.size(); ++k)
+        // Billboard in a grid
+        update_field_color(field, particles);
+
+        // Billboard that follows particle
+        /*for(size_t k = 0; k < particles.size(); ++k)
         {
             field_quad.transform.translate = particles[k].p;
             field_quad.transform.rotate = scene.camera.orientation();
             field_quad.shading.alpha = 0.1f;
             draw(field_quad, scene);
-        }
+        }*/
 	}
 
     //draw(ground, scene);
@@ -314,6 +315,13 @@ void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> cons
 					f += 0.25f*std::exp(-r*r);
 				}
                 //field(kx,Nf-1-ky,kz) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
+
+                // Add billboard
+                field_quad.transform.translate = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 2.0f*(kz/(Nf-1.0f)-0.5f)};
+                field_quad.transform.rotate = scene.camera.orientation();
+                field_quad.shading.alpha = clamp(f,0,1);
+                draw(field_quad, scene);
+
 			}
 		}
 	}
