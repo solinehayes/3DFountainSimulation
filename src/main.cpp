@@ -37,7 +37,7 @@ void window_size_callback(GLFWwindow* window, int width, int height);
 
 
 void initialize_data();
-void add_particle();
+void update_particles();
 void display_scene();
 void display_interface();
 void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles);
@@ -98,7 +98,7 @@ int main(int, char* argv[])
 		ImGui::Begin("GUI",NULL,ImGuiWindowFlags_AlwaysAutoResize);
 
 		float const dt = 0.005f * timer.scale;
-        add_particle();
+        update_particles();
 		simulate(dt, particles, sph_parameters);
 
 		display_interface();
@@ -147,15 +147,28 @@ void initialize_sph()
 
 }
 
-void add_particle(){
-    for (int i=0; i<2; i++){
-        float const h = sph_parameters.h;
+void update_particles(){
+    float const h = sph_parameters.h;
+    int particle_to_recycle = 0;
+    // Update lifetime  and recycle old particles to avoid slow simulation
+    for(size_t i=0; i<particles.size(); ++i){
+        particles[i].lifetime += 1;
+        if (particles[i].lifetime>700){
+            particle_to_recycle = i;
+            particles[i].lifetime = 0;
+        }
+    }
+    // Add particles or reclycle one
+    if (particle_to_recycle != 0){
+        particles[particle_to_recycle].p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
+        particles[particle_to_recycle].v = {0.0f,5.0f,0.0f};
+    }
+    else{
         particle_element particle;
         particle.p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
         particle.v = {0.0f,5.0f,0.0f};
         particles.push_back(particle);
     }
-
 }
 
 void initialize_data()

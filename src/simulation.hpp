@@ -14,8 +14,9 @@ struct particle_element
     float rho;      // density at this particle position
     float pressure; // pressure at this particle position
 
+    int lifetime; // add lifetime to remove particle after a certain time (to avoid slowing the simulation)
 
-    particle_element() : p{0,0,0},v{0,0,0},f{0,0,0},rho(0),pressure(0) {}
+    particle_element() : p{0,0,0},v{0,0,0},f{0,0,0},rho(0),pressure(0),lifetime(0) {}
 };
 
 // SPH simulation parameters
