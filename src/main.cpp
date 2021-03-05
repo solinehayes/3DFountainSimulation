@@ -37,6 +37,7 @@ void window_size_callback(GLFWwindow* window, int width, int height);
 
 
 void initialize_data();
+void add_particle();
 void display_scene();
 void display_interface();
 void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles);
@@ -97,6 +98,7 @@ int main(int, char* argv[])
 		ImGui::Begin("GUI",NULL,ImGuiWindowFlags_AlwaysAutoResize);
 
 		float const dt = 0.005f * timer.scale;
+        add_particle();
 		simulate(dt, particles, sph_parameters);
 
 		display_interface();
@@ -136,11 +138,22 @@ void initialize_sph()
         {
 			
 			particle_element particle;
-			particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
-			particles.push_back(particle);			
-
-			
+            //particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
+            particle.p = {h/8*rand_interval(),h/8*rand_interval(),-1+h/8*rand_interval()}; // Same initial position
+            particle.v = {0.0f,5.0f,0.0f}; // Initial velocity
+            //particles.push_back(particle);
         }
+    }
+
+}
+
+void add_particle(){
+    for (int i=0; i<2; i++){
+        float const h = sph_parameters.h;
+        particle_element particle;
+        particle.p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
+        particle.v = {0.0f,5.0f,0.0f};
+        particles.push_back(particle);
     }
 
 }
