@@ -21,6 +21,7 @@ namespace vcl
 		// Uniform
 		affine_rts transform;
 		vec3 color;
+		float alpha;
 		
 		static GLuint default_shader;
 
@@ -41,6 +42,7 @@ namespace vcl
 
 		// Send uniforms for this shader
 		opengl_uniform(drawable.shader, scene);
+		opengl_uniform(drawable.shader, "alpha", drawable.alpha);
 		opengl_uniform(drawable.shader, "color", drawable.color);
 		opengl_uniform(drawable.shader, "model", drawable.transform.matrix());
 
