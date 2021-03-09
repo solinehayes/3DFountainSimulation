@@ -1,5 +1,6 @@
 #include "vcl/vcl.hpp"
 #include <iostream>
+#include <list>
 
 #include "simulation.hpp"
 
@@ -44,6 +45,8 @@ void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> cons
 
 
 timer_basic timer;
+int flow;
+int compt;
 
 
 sph_parameters_structure sph_parameters; // Physical parameter related to SPH
@@ -78,6 +81,8 @@ int main(int, char* argv[])
 	std::cout<<"Start animation loop ..."<<std::endl;
 	user.fps_record.start();
 	timer.start();
+	flow= 1;
+	compt = 0;
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
@@ -153,22 +158,27 @@ void update_particles(){
     // Update lifetime
     for(size_t i=0; i<particles.size(); ++i){
         particles[i].lifetime += 1;
-        if (particles[i].lifetime>500){
+        if (particles[i].lifetime>300){
             particle_to_recycle = i;
             particles[i].lifetime = 0;
         }
     }
     // Add or reclycle particle
-    if (particle_to_recycle != 0){
-        particles[particle_to_recycle].p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
-        particles[particle_to_recycle].v = {0.0f,5.0f,0.0f};
-    }
-    else{
-        particle_element particle;
-        particle.p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
-        particle.v = {0.0f,5.0f,0.0f};
-        particles.push_back(particle);
-    }
+	if(compt>flow){
+		if (particle_to_recycle != 0){
+			particles[particle_to_recycle].p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
+			particles[particle_to_recycle].v = {0.0f,5.0f+rand_interval(),0.0f};
+		}
+		else{
+			particle_element particle;
+			particle.p = {h/8*rand_interval(),h/8*rand_interval(),h/8*rand_interval()};
+			particle.v = {0.0f,5.0f+rand_interval(),0.0f};
+			particle.lifetime = 0;
+			particles.push_back(particle);
+		}
+		compt = 0;
+	}
+	compt ++;
 }
 
 void initialize_data()
@@ -247,6 +257,7 @@ void display_scene()
 void display_interface()
 {
 	ImGui::SliderFloat("Timer scale", &timer.scale, 0.01f, 4.0f, "%0.2f");
+	ImGui::SliderInt("Particule creation step", &flow, 1, 10);
 
 	bool const restart = ImGui::Button("Restart");
 	if(restart)
