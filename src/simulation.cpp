@@ -10,28 +10,16 @@ float density_to_pressure(float rho, float rho0, float stiffness)
 
 float W_laplacian_viscosity(vec3 const& p_i, vec3 const& p_j, float h)
 {
-#ifdef SOLUTION
 	float const r = norm(p_i-p_j);
 	assert_vcl_no_msg(r<=h);
 	return 45/(3.14159f*std::pow(h,6.0f))*(h-r);
-#else
-    // To do ...
-    //  Fill it with laplacian of W_viscosity
-    return 0.0f;
-#endif
 }
 
 vec3 W_gradient_pressure(vec3 const& p_i, vec3 const& p_j, float h)
 {
-#ifdef SOLUTION
 	float const r = norm(p_i-p_j);
 	assert_vcl_no_msg(r<=h);
 	return -45/(3.14159f*std::pow(h,6.0f))*std::pow(h-r,2)*(p_i-p_j)/r;
-#else
-    // To do ...
-    //  Fill it with gradient of W_spiky
-    return (p_i-p_j)/norm(p_i-p_j);
-#endif
 }
 
 float W_density(vec3 const& p_i, const vec3& p_j, float h)
@@ -44,7 +32,6 @@ float W_density(vec3 const& p_i, const vec3& p_j, float h)
 
 void update_density(buffer<particle_element>& particles, float h, float m)
 {
-#ifdef SOLUTION
     size_t const N = particles.size();
 
     for(size_t i=0; i<N; ++i)
@@ -62,15 +49,6 @@ void update_density(buffer<particle_element>& particles, float h, float m)
                 particles[i].rho += m * W_density(pi,pj,h);
         }
     }
-#else
-    // To do: Compute the density value (particles[i].rho) at each particle position
-    //  rho_i = \sum_j m W_density(pi,pj)
-    size_t const N = particles.size();
-    for(size_t i=0; i<N; ++i)
-        particles[i].rho = 1.0f; // to be modified
-#endif
-
-
 }
 
 // Convert the particle density to pressure
@@ -89,7 +67,6 @@ void update_force(buffer<particle_element>& particles, float h, float m, float n
     for(size_t i=0; i<N; ++i)
         particles[i].f = m * vec3{0,-9.81f,0};
 
-#ifdef SOLUTION
     for(size_t i=0; i<N; ++i)
     {
         for(size_t j=0; j<N; ++j)
@@ -124,14 +101,6 @@ void update_force(buffer<particle_element>& particles, float h, float m, float n
 
         }
     }
-#else
-    //TO Do
-    // For all particles i
-    //   Compute F_pressure
-    //   Compute F_viscosity
-    //   particles[i].f += (F_pressure + F_viscosity) / rho_i
-    // ...
-#endif
 
 }
 
