@@ -256,8 +256,7 @@ void display_scene()
 
 			//Display trajectories
 			particles[k].trajectory.add(p, timer.t);
-			trajectory_drawable trajectory;
-			 particles[k].trajectory.visual.color = {0.18f,0.82f,0.85f};
+			particles[k].trajectory.visual.color = {0.18f,0.82f,0.85f};
 			particles[k].trajectory.visual.alpha = 0.4;
 			draw(particles[k].trajectory, scene);
 		}
