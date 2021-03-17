@@ -1,5 +1,6 @@
 #include "vcl/vcl.hpp"
 #include <iostream>
+#include <list>
 
 #include "simulation.hpp"
 
@@ -9,7 +10,7 @@ using namespace vcl;
 
 struct gui_parameters {
 	bool display_color     = true;
-	bool display_particles = true;
+    bool display_particles = true;
 	bool display_radius    = false;
 	bool display_frame		= true;
 };
@@ -37,12 +38,18 @@ void window_size_callback(GLFWwindow* window, int width, int height);
 
 
 void initialize_data();
+void update_particles();
 void display_scene();
 void display_interface();
 void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles);
 
 
 timer_basic timer;
+int flow;
+int compt;
+int maxLifetime;
+int fountain_water_storey;
+float fountain_angle;
 
 
 sph_parameters_structure sph_parameters; // Physical parameter related to SPH
@@ -54,6 +61,8 @@ grid_3D<vec3> field;      // grid used to represent the volume of the fluid unde
 mesh_drawable field_quad; // quad used to display this field color
 
 mesh_drawable ground;
+mesh_drawable fountain_borders;
+mesh_drawable fountain_center;
 
 
 
@@ -77,6 +86,11 @@ int main(int, char* argv[])
 	std::cout<<"Start animation loop ..."<<std::endl;
 	user.fps_record.start();
 	timer.start();
+	flow= 4;
+	compt = 0;
+	maxLifetime = 150;
+	fountain_water_storey = 0;
+	fountain_angle = 0.0f;
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
@@ -97,6 +111,7 @@ int main(int, char* argv[])
 		ImGui::Begin("GUI",NULL,ImGuiWindowFlags_AlwaysAutoResize);
 
 		float const dt = 0.005f * timer.scale;
+        update_particles();
 		simulate(dt, particles, sph_parameters);
 
 		display_interface();
@@ -128,21 +143,62 @@ void initialize_sph()
 
 
 	// Fill a cube with particles
-	particles.clear();
-    float const epsilon = 1e-3f;
+    particles.clear();
+    /*float const epsilon = 1e-3f;
     for(float x=h; x<1.0f-h; x=x+c*h)
     {
         for(float y=-1.0f+h; y<1.0f-h; y=y+c*h)
         {
 			
 			particle_element particle;
-			particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
-			particles.push_back(particle);			
+            particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
+            particle.p = {h/8*rand_interval(),h/8*rand_interval(),-1+h/8*rand_interval()}; // Same initial position
+            particle.v = {0.0f,5.0f,0.0f}; // Initial velocity
+            particles.push_back(particle);
+        }
+    }*/
 
-			
+}
+
+void update_particles(){
+    float const h = sph_parameters.h;
+    std::list<unsigned int> particles_to_recycle = {};
+    // Update lifetime
+    for(size_t i=0; i<particles.size(); ++i){
+        particles[i].lifetime += 1;
+        if (particles[i].lifetime>maxLifetime){
+            particles_to_recycle.push_back(i);
+            particles[i].lifetime = 0;
+			particles[i].trajectory.clear();
         }
     }
+    // Add or reclycle particle
+	if(compt>flow){
+		float height;
+		if(fountain_water_storey == 0) height = 4.0f;
+		else if (fountain_water_storey == 1) height = 7.0f;
 
+		if (particles_to_recycle.size() != 0){
+			int first = particles_to_recycle.front();
+			particles[first].p = {0.0f,-0.5f,0.0f};
+			particles[first].v = {cos(fountain_angle)/50,height,sin(fountain_angle)/50};
+			particles_to_recycle.pop_front();
+			
+		}
+		else{
+			particle_element particle;
+			particle.p = {0.0f,-0.5f,0.0f};
+			particle.v = {cos(fountain_angle)/50,height,sin(fountain_angle)/50};
+			particle.lifetime = 0;
+			particles.push_back(particle);
+		}
+		compt = 0;
+		fountain_water_storey+=1;
+		fountain_water_storey = fountain_water_storey % 2;
+		fountain_angle+= 2*3.14f/10;
+		if(fountain_angle>= 2*3.14) fountain_angle = 0.0f;
+	}
+	compt ++;
 }
 
 void initialize_data()
@@ -156,11 +212,14 @@ void initialize_data()
 	segments_drawable::default_shader = shader_uniform_color;
 
 	scene.camera.look_at({0,0,1.0f}, {0,0,0}, {0,1,0});
-
-	field.resize(30,30,30);
-	field_quad = mesh_drawable( mesh_primitive_quadrangle({-1,-1,0},{1,-1,0},{1,1,0},{-1,1,0}) );
-	field_quad.shading.phong = {1,0,0};
-	//field_quad.texture = opengl_texture_to_gpu(field);
+	float billboard_size = 0.03f;
+    field.resize(10,10,10);
+    field_quad = mesh_drawable( mesh_primitive_quadrangle({-billboard_size,-billboard_size,0},
+															{billboard_size,-billboard_size,0},
+															{billboard_size,billboard_size,0},
+															{-billboard_size,billboard_size,0}) );
+    field_quad.shading.phong = {1.0f,0,0};
+    field_quad.texture = opengl_texture_to_gpu(image_load_png("assets/field.png"));
 
 	user.gui.display_frame = false;
 
@@ -171,21 +230,35 @@ void initialize_data()
 	curve_visual.color = {1,0,0};
 	curve_visual = curve_drawable(curve_primitive_circle());
 
-	ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.0f,-1.0f},{-1.0f,-1.0f,1.0f},{1.0f,-1.0f,-1.0f},{1.0f,-1.0f,1.0f}));
-	ground.texture = opengl_texture_to_gpu(image_load_png("assets/ground.png"));
+    ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.02f,-1.0f},{-1.0f,-1.02f,1.0f},{1.0f,-1.02f,1.0f},{1.0f,-1.02f,-1.0f}));
 
+	fountain_borders = mesh_drawable(mesh_primitive_cubic_grid({-0.5f,-1.0f,-0.5f},{0.5f,-1.0f,-0.5f},{0.5f,-0.5f,-0.5f},{-0.5f,-0.5f,-0.5f},
+																{-0.5f,-1.0f,0.5f},{0.5f,-1.0f,0.5f},{0.5f,-0.5f,0.5f},{-0.5f,-0.5f,0.5f}));
+	fountain_center = mesh_drawable(mesh_primitive_cylinder(0.1f,{0,-1,0},{0,-0.5,0},10,20,true));
 
-
+	
+	fountain_borders.shading.alpha = 0.2f;
 }
 
 
 void display_scene()
 {
+	
+	draw(ground, scene);
+	draw(fountain_center,scene);
+	draw(fountain_borders,scene);
+
 	if(user.gui.display_particles){
 		for (size_t k = 0; k < particles.size(); ++k) {
 			vec3 const& p = particles[k].p;
 			sphere_particle.transform.translate = p;
 			draw(sphere_particle, scene);
+
+			//Display trajectories
+			particles[k].trajectory.add(p, timer.t);
+			particles[k].trajectory.visual.color = {0.18f,0.82f,0.85f};
+			particles[k].trajectory.visual.alpha = 0.4;
+			draw(particles[k].trajectory, scene);
 		}
 	}
 
@@ -198,17 +271,33 @@ void display_scene()
 	}
 
 	if(user.gui.display_color){
-		//update_field_color(field, particles);
-		//opengl_update_texture_gpu(field_quad.texture, field);
-		//draw(field_quad, scene);
-	}
+        glEnable(GL_BLEND);
+        glDepthMask(false);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	draw(ground, scene);
+        // Billboard in a grid
+        update_field_color(field, particles);
+
+        // Billboard that follows particle
+        /*for(size_t k = 0; k < particles.size(); ++k)
+        {
+            field_quad.transform.translate = particles[k].p;
+            field_quad.transform.rotate = scene.camera.orientation();
+            field_quad.shading.alpha = 0.1f;
+            draw(field_quad, scene);
+        }*/
+	}
+	
+		
+
+    
 
 }
 void display_interface()
 {
 	ImGui::SliderFloat("Timer scale", &timer.scale, 0.01f, 4.0f, "%0.2f");
+	ImGui::SliderInt("Maximum lifetime of particules", &maxLifetime, 100, 800);
+	ImGui::SliderInt("Particule creation step", &flow, 1, 10);
 
 	bool const restart = ImGui::Button("Restart");
 	if(restart)
@@ -263,21 +352,41 @@ void opengl_uniform(GLuint shader, scene_environment const& current_scene)
 
 void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles)
 {
-	field.fill({1,1,1});
-	float const d = 0.1f;
-	int const Nf = int(field.dimension.x);
-	for (int kx = 0; kx < Nf; ++kx) {
-		for (int ky = 0; ky < Nf; ++ky) {
-			for (int kz = 0; kz < Nf; ++kz) {
-				float f = 0.0f;
-				vec3 const p0 = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 2.0f*(kz/(Nf-1.0f)-0.5f)};
-				for (size_t k = 0; k < particles.size(); ++k) {
-					vec3 const& pi = particles[k].p;
-					float const r = norm(pi-p0)/d;
-					f += 0.25f*std::exp(-r*r);
-				}
-				field(kx,Nf-1-ky,kz) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
-			}
+    // field.fill({1,1,1});
+	// float const d = 0.1f;
+	// int const Nf = int(field.dimension.x);
+	// for (int kx = 0; kx < Nf; ++kx) {
+	// 	for (int ky = 0; ky < Nf; ++ky) {
+	// 		for (int kz = 0; kz < Nf; ++kz) {
+	// 			float f = 0.0f;
+	// 			vec3 const p0 = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 2.0f*(kz/(Nf-1.0f)-0.5f)};
+	// 			for (size_t k = 0; k < particles.size(); ++k) {
+	// 				vec3 const& pi = particles[k].p;
+	// 				float const r = norm(pi-p0)/d;
+	// 				f += 0.25f*std::exp(-r*r);
+	// 			}
+    //             //field(kx,Nf-1-ky,kz) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
+
+    //             // Add billboard
+    //             field_quad.transform.translate = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 2.0f*(kz/(Nf-1.0f)-0.5f)};
+    //             field_quad.transform.rotate = scene.camera.orientation();
+    //             field_quad.shading.alpha = clamp(f,0,1);
+    //             draw(field_quad, scene);
+
+	// 		}
+	// 	}
+	// }
+	for (int k = 0 ; k< particles.size(); k++){
+		trajectory_drawable trajectory = particles[k].trajectory;
+		// Add billboard
+		for(int k2 = 0 ; k2< trajectory.position_record.size() ; k2+=2){ 
+			vec3 position = trajectory.position_record[k2];
+			if(position.x == 0 && position.y == 0 && position.z == 0) continue;
+
+			field_quad.transform.translate = trajectory.position_record[k2];
+			field_quad.transform.rotate = scene.camera.orientation();
+			field_quad.shading.alpha = clamp(0.2f,0,1);
+			draw(field_quad, scene);
 		}
 	}
 
