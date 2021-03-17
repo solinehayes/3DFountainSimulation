@@ -12,7 +12,6 @@ struct gui_parameters {
 	bool display_color     = true;
     bool display_particles = true;
 	bool display_radius    = false;
-	bool display_frame		= true;
 };
 
 struct user_interaction_parameters {
@@ -205,22 +204,20 @@ void initialize_data()
     field_quad.shading.phong = {1.0f,0,0};
     field_quad.texture = opengl_texture_to_gpu(image_load_png("assets/field.png"));
 
-	user.gui.display_frame = false;
 
 
 	initialize_sph();
+
+	//Initialize mesh 
 	sphere_particle = mesh_drawable(mesh_primitive_sphere());
 	sphere_particle.transform.scale = 0.01f;
 	curve_visual.color = {1,0,0};
 	curve_visual = curve_drawable(curve_primitive_circle());
 
     ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.02f,-1.0f},{-1.0f,-1.02f,1.0f},{1.0f,-1.02f,1.0f},{1.0f,-1.02f,-1.0f}));
-
 	fountain_borders = mesh_drawable(mesh_primitive_cubic_grid({-0.5f,-1.0f,-0.5f},{0.5f,-1.0f,-0.5f},{0.5f,-0.5f,-0.5f},{-0.5f,-0.5f,-0.5f},
 																{-0.5f,-1.0f,0.5f},{0.5f,-1.0f,0.5f},{0.5f,-0.5f,0.5f},{-0.5f,-0.5f,0.5f}));
 	fountain_center = mesh_drawable(mesh_primitive_cylinder(0.1f,{0,-1,0},{0,-0.5,0},10,20,true));
-
-	
 	fountain_borders.shading.alpha = 0.2f;
 }
 
@@ -259,9 +256,8 @@ void display_scene()
         glDepthMask(false);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        // Billboard in a grid
+        // Billboards
         update_field_color(field, particles);
-
 	}
 	
 }
@@ -278,11 +274,9 @@ void display_interface()
 	ImGui::Checkbox("Color", &user.gui.display_color);
 	ImGui::Checkbox("Particles", &user.gui.display_particles);
 	ImGui::Checkbox("Radius", &user.gui.display_radius);
-	ImGui::Checkbox("Frame", &user.gui.display_frame);
 
 
 }
-
 
 void window_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -330,7 +324,7 @@ void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> cons
 		for(int k2 = 0 ; k2< trajectory.position_record.size() ; k2+=2){ 
 			vec3 position = trajectory.position_record[k2];
 
-			//Take away error values
+			//Take away error values to prevent misplaced blue spots
 			if(position.x == 0 && position.y == 0 && position.z == 0) continue;
 
 			field_quad.transform.translate = trajectory.position_record[k2];
