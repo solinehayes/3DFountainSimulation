@@ -18,7 +18,7 @@ struct particle_element
 
     vcl::trajectory_drawable trajectory; //Trajectory of the particule for visualization
 
-    particle_element() : p{0,0,0},v{0,0,0},f{0,0,0},rho(0),pressure(0),trajectory(40) {}
+    particle_element() : p{0,0,0},v{0,0,0},f{0,0,0},rho(0),pressure(0),trajectory(50) {}
 };
 
 // SPH simulation parameters
