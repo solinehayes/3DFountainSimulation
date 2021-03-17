@@ -21,3 +21,6 @@ cd ..
 ./build/3DFountainSimulation
 ```
 
+Controls:
+- Dezoom with the left click
+- Rotate with the right click
