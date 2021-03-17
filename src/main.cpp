@@ -140,24 +140,8 @@ void initialize_sph()
     // Initial particle spacing (relative to h)
     float const c = 0.7f;
 	float const h = sph_parameters.h;
-
-
-	// Fill a cube with particles
+	
     particles.clear();
-    /*float const epsilon = 1e-3f;
-    for(float x=h; x<1.0f-h; x=x+c*h)
-    {
-        for(float y=-1.0f+h; y<1.0f-h; y=y+c*h)
-        {
-			
-			particle_element particle;
-            particle.p = {x+h/8.0*rand_interval(),y+h/8.0*rand_interval(),-1+h/8.0*rand_interval()}; // a zero value in z position will lead to a 2D simulation
-            particle.p = {h/8*rand_interval(),h/8*rand_interval(),-1+h/8*rand_interval()}; // Same initial position
-            particle.v = {0.0f,5.0f,0.0f}; // Initial velocity
-            particles.push_back(particle);
-        }
-    }*/
-
 }
 
 void update_particles(){
@@ -278,20 +262,8 @@ void display_scene()
         // Billboard in a grid
         update_field_color(field, particles);
 
-        // Billboard that follows particle
-        /*for(size_t k = 0; k < particles.size(); ++k)
-        {
-            field_quad.transform.translate = particles[k].p;
-            field_quad.transform.rotate = scene.camera.orientation();
-            field_quad.shading.alpha = 0.1f;
-            draw(field_quad, scene);
-        }*/
 	}
 	
-		
-
-    
-
 }
 void display_interface()
 {
@@ -352,35 +324,13 @@ void opengl_uniform(GLuint shader, scene_environment const& current_scene)
 
 void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles)
 {
-    // field.fill({1,1,1});
-	// float const d = 0.1f;
-	// int const Nf = int(field.dimension.x);
-	// for (int kx = 0; kx < Nf; ++kx) {
-	// 	for (int ky = 0; ky < Nf; ++ky) {
-	// 		for (int kz = 0; kz < Nf; ++kz) {
-	// 			float f = 0.0f;
-	// 			vec3 const p0 = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 2.0f*(kz/(Nf-1.0f)-0.5f)};
-	// 			for (size_t k = 0; k < particles.size(); ++k) {
-	// 				vec3 const& pi = particles[k].p;
-	// 				float const r = norm(pi-p0)/d;
-	// 				f += 0.25f*std::exp(-r*r);
-	// 			}
-    //             //field(kx,Nf-1-ky,kz) = vec3(clamp(1-f,0,1),clamp(1-f,0,1),1);
-
-    //             // Add billboard
-    //             field_quad.transform.translate = { 2.0f*(kx/(Nf-1.0f)-0.5f), 2.0f*(ky/(Nf-1.0f)-0.5f), 2.0f*(kz/(Nf-1.0f)-0.5f)};
-    //             field_quad.transform.rotate = scene.camera.orientation();
-    //             field_quad.shading.alpha = clamp(f,0,1);
-    //             draw(field_quad, scene);
-
-	// 		}
-	// 	}
-	// }
-	for (int k = 0 ; k< particles.size(); k++){
-		trajectory_drawable trajectory = particles[k].trajectory;
-		// Add billboard
+	for (int k1 = 0 ; k1< particles.size(); k1++){
+		// Add billboard along the trajectory 
+		trajectory_drawable trajectory = particles[k1].trajectory;
 		for(int k2 = 0 ; k2< trajectory.position_record.size() ; k2+=2){ 
 			vec3 position = trajectory.position_record[k2];
+
+			//Take away error values
 			if(position.x == 0 && position.y == 0 && position.z == 0) continue;
 
 			field_quad.transform.translate = trajectory.position_record[k2];
@@ -389,7 +339,5 @@ void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> cons
 			draw(field_quad, scene);
 		}
 	}
-
-
 }
 
