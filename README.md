@@ -2,6 +2,8 @@
 
 ![FountainSimulation](./Simulation.gif)
 
+Fluid simulation done with SPH.
+
 ## Run the code
 
 Requirement to be able to run the code:
