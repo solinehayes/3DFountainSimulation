@@ -12,6 +12,7 @@ struct gui_parameters {
 	bool display_color     = true;
     bool display_particles = true;
 	bool display_radius    = false;
+	bool initial_particles = false;
 };
 
 struct user_interaction_parameters {
@@ -141,6 +142,18 @@ void initialize_sph()
 	float const h = sph_parameters.h;
 	
     particles.clear();
+
+	if(user.gui.initial_particles){
+		//Create initial particules at the bottom of the cube
+		for(float k1 = -0.8f ; k1<0.9f ; k1+=0.1f){
+			for(float k2 = -0.8f ; k2<0.9f ; k2+=0.1f){
+				particle_element particle;
+				particle.p = {k1,-1.0f,k2};
+				particle.lifetime = 50;
+				particles.push_back(particle);
+			}
+		}
+	}
 }
 
 void update_particles(){
@@ -195,7 +208,7 @@ void initialize_data()
 	segments_drawable::default_shader = shader_uniform_color;
 
 	scene.camera.look_at({0,0,1.0f}, {0,0,0}, {0,1,0});
-	float billboard_size = 0.03f;
+	float billboard_size = 0.05f;
     field.resize(10,10,10);
     field_quad = mesh_drawable( mesh_primitive_quadrangle({-billboard_size,-billboard_size,0},
 															{billboard_size,-billboard_size,0},
@@ -215,8 +228,9 @@ void initialize_data()
 	curve_visual = curve_drawable(curve_primitive_circle());
 
     ground = mesh_drawable(mesh_primitive_quadrangle({-1.0f,-1.02f,-1.0f},{-1.0f,-1.02f,1.0f},{1.0f,-1.02f,1.0f},{1.0f,-1.02f,-1.0f}));
-	fountain_borders = mesh_drawable(mesh_primitive_cubic_grid({-0.5f,-1.0f,-0.5f},{0.5f,-1.0f,-0.5f},{0.5f,-0.5f,-0.5f},{-0.5f,-0.5f,-0.5f},
-																{-0.5f,-1.0f,0.5f},{0.5f,-1.0f,0.5f},{0.5f,-0.5f,0.5f},{-0.5f,-0.5f,0.5f}));
+	float fountain_borders_size = 0.9f;
+	fountain_borders = mesh_drawable(mesh_primitive_cubic_grid({-fountain_borders_size,-1.0f,-fountain_borders_size},{fountain_borders_size,-1.0f,-fountain_borders_size},{fountain_borders_size,-0.5f,-fountain_borders_size},{-fountain_borders_size,-0.5f,-fountain_borders_size},
+																{-fountain_borders_size,-1.0f,fountain_borders_size},{fountain_borders_size,-1.0f,fountain_borders_size},{fountain_borders_size,-0.5f,fountain_borders_size},{-fountain_borders_size,-0.5f,fountain_borders_size}));
 	fountain_center = mesh_drawable(mesh_primitive_cylinder(0.1f,{0,-1,0},{0,-0.5,0},10,20,true));
 	fountain_borders.shading.alpha = 0.2f;
 }
@@ -274,6 +288,8 @@ void display_interface()
 	ImGui::Checkbox("Color", &user.gui.display_color);
 	ImGui::Checkbox("Particles", &user.gui.display_particles);
 	ImGui::Checkbox("Radius", &user.gui.display_radius);
+	ImGui::Checkbox("Initially add particules at the bottom", &user.gui.initial_particles);
+
 
 
 }

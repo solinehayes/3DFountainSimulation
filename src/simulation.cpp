@@ -136,10 +136,10 @@ void simulate(float dt, buffer<particle_element>& particles, sph_parameters_stru
 
         // small perturbation to avoid alignment
         if( p.y<-1 ) {p.y = -1+epsilon*rand_interval();  v.y *= -0.5f;}
-        if( p.x<-0.5 ) {p.x = -0.5+epsilon*rand_interval();  v.x *= -0.5f;}
-        if( p.x>0.5 )  {p.x =  0.5-epsilon*rand_interval();  v.x *= -0.5f;}
-        if( p.z<-0.5 ) {p.z = -0.5+epsilon*rand_interval();  v.z *= -0.5f;}
-        if( p.z>0.5 )  {p.z =  0.5-epsilon*rand_interval();  v.z *= -0.5f;}
+        if( p.x<-0.9 ) {p.x = -0.9+epsilon*rand_interval();  v.x *= -0.5f;}
+        if( p.x>0.9 )  {p.x =  0.9-epsilon*rand_interval();  v.x *= -0.5f;}
+        if( p.z<-0.9 ) {p.z = -0.9+epsilon*rand_interval();  v.z *= -0.5f;}
+        if( p.z>0.9 )  {p.z =  0.9-epsilon*rand_interval();  v.z *= -0.5f;}
     }
 
 }
