@@ -11,6 +11,7 @@ using namespace vcl;
 struct gui_parameters {
 	bool display_color     = true;
     bool display_particles = true;
+	bool display_trajectories = true;
 	bool display_radius    = false;
 	bool initial_particles = false;
 };
@@ -41,7 +42,7 @@ void initialize_data();
 void update_particles();
 void display_scene();
 void display_interface();
-void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles);
+void update_field_color( vcl::buffer<particle_element> const& particles);
 
 
 timer_basic timer;
@@ -57,7 +58,6 @@ buffer<particle_element> particles;      // Storage of the particles
 mesh_drawable sphere_particle; // Sphere used to display a particle
 curve_drawable curve_visual;   // Circle used to display the radius h of influence
 
-grid_3D<vec3> field;      // grid used to represent the volume of the fluid under the particles
 mesh_drawable field_quad; // quad used to display this field color
 
 mesh_drawable ground;
@@ -209,7 +209,6 @@ void initialize_data()
 
 	scene.camera.look_at({0,0,1.0f}, {0,0,0}, {0,1,0});
 	float billboard_size = 0.05f;
-    field.resize(10,10,10);
     field_quad = mesh_drawable( mesh_primitive_quadrangle({-billboard_size,-billboard_size,0},
 															{billboard_size,-billboard_size,0},
 															{billboard_size,billboard_size,0},
@@ -248,6 +247,11 @@ void display_scene()
 			vec3 const& p = particles[k].p;
 			sphere_particle.transform.translate = p;
 			draw(sphere_particle, scene);
+		}
+	}
+	if(user.gui.display_trajectories){
+		for (size_t k = 0; k < particles.size(); ++k) {
+			vec3 const& p = particles[k].p;
 
 			//Display trajectories
 			particles[k].trajectory.add(p, timer.t);
@@ -270,8 +274,16 @@ void display_scene()
         glDepthMask(false);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		if(!user.gui.display_trajectories){
+			//Still add position to trajectories
+			for (size_t k = 0; k < particles.size(); ++k) {
+				vec3 const& p = particles[k].p;
+				particles[k].trajectory.add(p, timer.t);
+			}
+		}
+		
         // Billboards
-        update_field_color(field, particles);
+        update_field_color( particles);
 	}
 	
 }
@@ -287,6 +299,7 @@ void display_interface()
 
 	ImGui::Checkbox("Color", &user.gui.display_color);
 	ImGui::Checkbox("Particles", &user.gui.display_particles);
+	ImGui::Checkbox("Trajectories", &user.gui.display_trajectories);
 	ImGui::Checkbox("Radius", &user.gui.display_radius);
 	ImGui::Checkbox("Initially add particules at the bottom", &user.gui.initial_particles);
 
@@ -332,7 +345,7 @@ void opengl_uniform(GLuint shader, scene_environment const& current_scene)
 	opengl_uniform(shader, "light", scene.light, false);
 }
 
-void update_field_color(grid_3D<vec3>& field, vcl::buffer<particle_element> const& particles)
+void update_field_color( vcl::buffer<particle_element> const& particles)
 {
 	for (int k1 = 0 ; k1< particles.size(); k1++){
 		// Add billboard along the trajectory 
